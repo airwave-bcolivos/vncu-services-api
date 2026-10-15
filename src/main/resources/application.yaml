@@ -1,3 +1,35 @@
+server:
+  port: 8080
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
 spring:
   application:
     name: core-services
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/vncu_db
+    username: postgres
+    password: 123456 # Los devs deben poner aquí la clave que usan en pgAdmin
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # 'none' porque la base de datos ya fue estructurada manualmente con el script SQL
+      ddl-auto: none
+
+    # Útil para que los devs vean en la consola las consultas que Spring ejecuta por detrás
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# Configuración de logs para ver los errores con mayor claridad (Opcional pero recomendado)
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
