@@ -1,7 +1,6 @@
 package com.vincu.core_services.core.security;
 
-import java.util.List;
-
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +13,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 @Configuration
+@Log4j2
 public class SecurityConfig {
 
     @Bean
@@ -44,7 +46,11 @@ public class SecurityConfig {
                         // Permite el acceso sin restricciones (sin login) a:
                         // POST /api/v1/users/register/client
                         // POST /api/v1/users/register/technician
-                        .requestMatchers("/api/v1/users/register/**", "/error").permitAll()
+                        .requestMatchers(
+                                "/api/v1/users/register/**",
+                                "/api/v1/auth/login",
+                                "/error"
+                        ).permitAll()
 
                         // Cualquier otra petición futura requerirá estar autenticado
                         .anyRequest().authenticated()

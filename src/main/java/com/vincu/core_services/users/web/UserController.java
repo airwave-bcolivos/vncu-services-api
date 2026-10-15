@@ -1,5 +1,7 @@
 package com.vincu.core_services.users.web;
 
+import lombok.extern.log4j.Log4j2;
+
 import com.vincu.core_services.users.dto.ClientRegisterRequest;
 import com.vincu.core_services.users.dto.TechnicianRegisterRequest;
 import com.vincu.core_services.users.service.UserService;
@@ -15,18 +17,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
+@Log4j2
 public class UserController {
 
     private final UserService userService;
 
     @PostMapping("/register/client")
     public ResponseEntity<Void> registerClient(@Valid @RequestBody ClientRegisterRequest request) {
+        log.info("Execution -> UserController.registerClient");
         userService.registerClient(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/register/technician")
     public ResponseEntity<Void> registerTechnician(@Valid @RequestBody TechnicianRegisterRequest request) {
+        log.info("Execution -> UserController.registerTechnician");
         userService.registerTechnician(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

@@ -1,5 +1,7 @@
 package com.vincu.core_services.users.service;
 
+import lombok.extern.log4j.Log4j2;
+
 import com.vincu.core_services.users.domain.ClientProfile;
 import com.vincu.core_services.users.domain.DocumentType;
 import com.vincu.core_services.users.domain.TechnicianProfile;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class UserService {
 
     private final UserRepository userRepository;

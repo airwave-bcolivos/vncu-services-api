@@ -28,4 +28,5 @@ public record ClientRegisterRequest(
 
         @NotBlank(message = "El número de teléfono es obligatorio")
         String phoneNumber
-) {}
+) {
+}

@@ -21,7 +21,7 @@ spring:
       ddl-auto: none
 
     # Útil para que los devs vean en la consola las consultas que Spring ejecuta por detrás
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -30,6 +30,8 @@ spring:
 # Configuración de logs para ver los errores con mayor claridad (Opcional pero recomendado)
 logging:
   level:
+    com.vincu.core_services: INFO
     org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.SQL: ERROR
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF
+    org.hibernate.orm.jdbc.bind: OFF
