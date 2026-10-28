@@ -13,9 +13,6 @@ spring:
     url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-#    url: jdbc:postgresql://localhost:5433/vncu_db
-#    username: postgres
-#    password: 123456 # Los devs deben poner aquí la clave que usan en pgAdmin
     driver-class-name: org.postgresql.Driver
 
   jpa:
