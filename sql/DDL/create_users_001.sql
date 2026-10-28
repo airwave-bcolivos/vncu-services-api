@@ -9,10 +9,6 @@ CREATE TABLE document_type (
     is_active BOOLEAN DEFAULT true
 );
 
--- Insertar datos básicos por defecto
-INSERT INTO document_type (name, code) VALUES ('Documento Nacional de Identidad', 'DNI');
-INSERT INTO document_type (name, code) VALUES ('Carnet de Extranjería', 'CE');
-
 -- 3. Tabla Central de Usuarios
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
