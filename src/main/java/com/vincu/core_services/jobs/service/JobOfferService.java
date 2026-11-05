@@ -129,6 +129,14 @@ public class JobOfferService {
     }
 
     @Transactional
+    public void cancelOffer(UUID id) {
+        JobOffer offer = jobOfferRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "La oferta no existe"));
+        offer.setStatus(JobStatus.CANCELED);
+    }
+
+    @Transactional
     public JobOfferResponse createJobOffer(JobOfferRequest request) {
 
         if (!clientProfileRepository.existsById(request.clientId()))
