@@ -23,18 +23,10 @@ public class JobOfferController {
         this.jobOfferService = jobOfferService;
     }
 
-    @GetMapping("/open")
-    public ResponseEntity<PageResponse<JobOfferSummaryResponse>> getOpenOffers(
-            @RequestParam(required = false) Specialty specialty,
-            @RequestParam(required = false) String districtId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(jobOfferService.getOpenOffers(specialty, districtId, page, size));
-    }
 
     @GetMapping
     public ResponseEntity<PageResponse<JobOfferSummaryResponse>> getOffersByClient(
-            @RequestParam UUID clientId, // TODO: tomarlo del usuario autenticado
+            @RequestParam String clientId, // TODO: tomarlo del usuario autenticado
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(jobOfferService.getOffersByClient(clientId, page, size));

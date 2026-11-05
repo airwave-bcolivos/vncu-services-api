@@ -50,7 +50,7 @@ public class SecurityConfig {
                                 "/api/v1/users/register/**",
                                 "/api/v1/auth/login",
                                 "/error",
-                                "/api/v1/jobs", "/api/v1/jobs/**"   // TODO: quitar al migrar a JWT
+                                "/api/v1/jobs", "/api/v1/jobs/**", "/api/v1/ubigeo/**"   // TODO: quitar al migrar a JWT
                         ).permitAll()
 
                         // Cualquier otra petición futura requerirá estar autenticado

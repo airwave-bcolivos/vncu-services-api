@@ -5,6 +5,7 @@ import com.vincu.core_services.jobs.domain.JobStatus;
 import com.vincu.core_services.jobs.dto.JobOfferDetailResponse;
 import com.vincu.core_services.jobs.dto.JobOfferSummaryResponse;
 import com.vincu.core_services.jobs.dto.PageResponse;
+import com.vincu.core_services.ubigeo.repository.UbigeoDistrictRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.vincu.core_services.jobs.dto.JobOfferRequest;
@@ -31,11 +32,14 @@ public class JobOfferService {
 
     private final JobOfferRepository jobOfferRepository;
     private final ClientProfileRepository clientProfileRepository;
+    private final UbigeoDistrictRepository  ubigeoDistrictRepository;
 
     public JobOfferService(JobOfferRepository _jobOfferRepository,
-                           ClientProfileRepository _clientProfileRepository) {
+                           ClientProfileRepository _clientProfileRepository,
+                           UbigeoDistrictRepository ubigeoDistrictRepository) {
         this.jobOfferRepository = _jobOfferRepository;
         this.clientProfileRepository = _clientProfileRepository;
+        this.ubigeoDistrictRepository = ubigeoDistrictRepository;
     }
 
     public PageResponse<JobOfferSummaryResponse> getOpenOffers(
@@ -59,10 +63,10 @@ public class JobOfferService {
         );
     }
 
-    public PageResponse<JobOfferSummaryResponse> getOffersByClient(UUID clientId, int page, int size) {
+    public PageResponse<JobOfferSummaryResponse> getOffersByClient(String clientId, int page, int size) {
 
         return PageResponse.from(
-                jobOfferRepository.findByClientId(clientId, buildPageable(page, size))
+                jobOfferRepository.findByClientId(UUID.fromString(clientId), buildPageable(page, size))
                         .map(this::toSummary)
         );
     }
@@ -121,6 +125,8 @@ public class JobOfferService {
         if (!clientProfileRepository.existsById(request.clientId()))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El cliente no existe");
 
+        if (!ubigeoDistrictRepository.existsById(request.ubigeoDistrictId()))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El distrito no existe");
 
         // Uso del patrón Builder de Lombok
         JobOffer offer = JobOffer.builder()
