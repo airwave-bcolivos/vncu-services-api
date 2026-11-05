@@ -120,12 +120,12 @@ public class JobOfferService {
         );
     }
 
-    public JobOfferDetailResponse getOfferDetail(UUID jobId, UUID viewerId) {
-        JobOffer offer = jobOfferRepository.findWithDetailsById(jobId)
+    public JobOfferDetailResponse getOfferDetail(String jobId, String viewerId) {
+        JobOffer offer = jobOfferRepository.findWithDetailsById(UUID.fromString(jobId))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta no existe"));
 
-        return toDetail(offer, viewerId);
+        return toDetail(offer, UUID.fromString(viewerId));
     }
 
     @Transactional
@@ -179,36 +179,45 @@ public class JobOfferService {
         );
     }
 
-    private JobOfferDetailResponse toDetail(JobOffer o, UUID viewerId) {
-        boolean isOwner = o.getClientId().equals(viewerId);
-        boolean isAssignedTechnician = o.getStatus() == JobStatus.IN_PROGRESS
-                && o.getTechnicianId() != null
-                && o.getTechnicianId().equals(viewerId);
+    private JobOfferDetailResponse toDetail(JobOffer jobOffer, UUID viewerId) {
+        //TODO: Pensar como hacer para que no falle cuando se agregue el administrador (id admin)
+        boolean isOwner = jobOffer.getClientId().equals(viewerId);
+        boolean isAssignedTechnician = jobOffer.getStatus() == JobStatus.IN_PROGRESS
+                && jobOffer.getTechnicianId() != null
+                && jobOffer.getTechnicianId().equals(viewerId);
 
         boolean canSeePrivateData = isOwner || isAssignedTechnician;
 
-        String address = canSeePrivateData ? o.getSpecificAddress() : null;
-        String clientName = canSeePrivateData ? fullName(o.getClient()) : null;
-        String technicianName = o.getTechnician() != null ? fullName(o.getTechnician()) : null;
+        String address = canSeePrivateData ? jobOffer.getSpecificAddress() : null;
+        String clientName = canSeePrivateData ? fullName(jobOffer.getClient()) : null;
+        String technicianName = jobOffer.getTechnician() != null ? fullName(jobOffer.getTechnician()) : null;
+
+        var district = jobOffer.getDistrict();
+        var province = district != null ? district.getProvince() : null;
+        var department = province != null ? province.getDepartment() : null;
 
         return new JobOfferDetailResponse(
-                o.getId(),
-                o.getClientId(),
+                jobOffer.getId(),
+                jobOffer.getClientId(),
                 clientName,
-                o.getTechnicianId(),
+                jobOffer.getTechnicianId(),
                 technicianName,
-                o.getTitle(),
-                o.getSpecialty(),
-                o.getDescription(),
-                o.getMaxBudget(),
-                o.getStatus(),
-                o.getUbigeoDistrictId(),
-                districtName(o),
+                jobOffer.getTitle(),
+                jobOffer.getSpecialty(),
+                jobOffer.getDescription(),
+                jobOffer.getMaxBudget(),
+                jobOffer.getStatus(),
+                jobOffer.getUbigeoDistrictId(),
+                districtName(jobOffer),
+                district != null ? district.getProvinceId() : null,
+                province != null ? province.getName() : null,
+                province != null ? province.getDepartmentId() : null,
+                department != null ? department.getName() : null,
                 address,
-                o.getLatitude(),
-                o.getLongitude(),
-                o.getCreatedAt(),
-                o.getUpdatedAt()
+                jobOffer.getLatitude(),
+                jobOffer.getLongitude(),
+                jobOffer.getCreatedAt(),
+                jobOffer.getUpdatedAt()
         );
     }
 

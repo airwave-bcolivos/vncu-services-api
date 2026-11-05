@@ -56,8 +56,8 @@ public class JobOfferController {
 
     @GetMapping("/{id}")
     public ResponseEntity<JobOfferDetailResponse> getOfferDetail(
-            @PathVariable UUID id,
-            @RequestParam(required = false) UUID viewerId) { // TODO: tomarlo del usuario autenticado
+            @PathVariable String id,
+            @RequestParam(required = false) String viewerId) { // TODO: tomarlo del usuario autenticado
         return ResponseEntity.ok(jobOfferService.getOfferDetail(id, viewerId));
     }
 

@@ -25,7 +25,7 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, UUID>, JpaSp
     @EntityGraph(attributePaths = "district")
     Page<JobOffer> findAll(@Nullable Specification<JobOffer> spec, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"district", "client", "technician"})
+    @EntityGraph(attributePaths = {"district.province.department", "client", "technician"})
     Optional<JobOffer> findWithDetailsById(UUID id);
 
 }

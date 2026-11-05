@@ -17,6 +17,10 @@ public class UbigeoDistrict {
     @Column(name = "province_id", nullable = false, length = 4)
     private String provinceId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "province_id", insertable = false, updatable = false)
+    private UbigeoProvince province;
+
     @Column(nullable = false, length = 100)
     private String name;
 }

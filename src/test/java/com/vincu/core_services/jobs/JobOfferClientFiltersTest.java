@@ -49,6 +49,8 @@ class JobOfferClientFiltersTest {
                 documentType);
         clientId = createClient(documentType);
         UUID otherClient = createClient(documentType);
+        jdbc.update("INSERT INTO ubigeo_departments (id, name) VALUES ('15', 'Lima departamento')");
+        jdbc.update("INSERT INTO ubigeo_provinces (id, department_id, name) VALUES ('1501', '15', 'Lima provincia')");
         jdbc.update("INSERT INTO ubigeo_districts (id, province_id, name) VALUES ('150101', '1501', 'Lima')");
 
         offer(clientId, "first", "2026-11-05T00:00:00", "100", Specialty.GASFITERO, JobStatus.OPEN);
@@ -145,6 +147,23 @@ class JobOfferClientFiltersTest {
         mvc.perform(get("/api/v1/jobs").param("clientId", clientId.toString())
                         .param(key, value).param(otherKey, otherValue))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void detailReturnsDistrictProvinceAndDepartment() throws Exception {
+        UUID offerId = jdbc.queryForObject("SELECT id FROM job_offers WHERE title = 'first'", UUID.class);
+
+        var response = mvc.perform(get("/api/v1/jobs/{id}", offerId))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        var body = JsonMapper.builder().build().readTree(response.getContentAsString());
+
+        assertThat(body.path("ubigeoDistrictId").asText()).isEqualTo("150101");
+        assertThat(body.path("ubigeoDistrictName").asText()).isEqualTo("Lima");
+        assertThat(body.path("ubigeoProvinceId").asText()).isEqualTo("1501");
+        assertThat(body.path("ubigeoProvinceName").asText()).isEqualTo("Lima provincia");
+        assertThat(body.path("ubigeoDepartmentId").asText()).isEqualTo("15");
+        assertThat(body.path("ubigeoDepartmentName").asText()).isEqualTo("Lima departamento");
+        assertThat(body.path("specificAddress").isNull()).isTrue();
     }
 
     private PageResponse<JobOfferSummaryResponse> unfiltered(String field, Sort.Direction direction, int page, int size) {

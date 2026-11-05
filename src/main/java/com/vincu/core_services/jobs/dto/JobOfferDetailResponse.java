@@ -20,6 +20,10 @@ public record JobOfferDetailResponse(
         JobStatus status,
         String ubigeoDistrictId,
         String ubigeoDistrictName,
+        String ubigeoProvinceId,
+        String ubigeoProvinceName,
+        String ubigeoDepartmentId,
+        String ubigeoDepartmentName,
         String specificAddress, // null si el que consulta no tiene permiso
         BigDecimal latitude,
         BigDecimal longitude,
