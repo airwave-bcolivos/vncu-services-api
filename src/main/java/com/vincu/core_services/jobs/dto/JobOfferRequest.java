@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record JobOfferRequest(
         @NotNull(message = "El cliente es obligatorio")
-        UUID clientId, // deuda técnica: luego vendrá del usuario autenticado
+        UUID clientId, // TODO: reemplazar con lectura de client id desde token jwt
 
         @NotBlank(message = "El título es obligatorio")
         @Size(max = 150, message = "El título no puede superar los 150 caracteres")
@@ -21,8 +21,8 @@ public record JobOfferRequest(
         String description,
 
         @NotNull(message = "El presupuesto máximo es obligatorio")
-        @DecimalMin(value = "0.01", message = "El presupuesto debe ser mayor a 0")
-        @Digits(integer = 8, fraction = 2, message = "Presupuesto inválido (máx. 8 enteros y 2 decimales)")
+        @DecimalMin(value = "1.00", message = "El presupuesto debe ser mayor a 0")
+        @Digits(integer = 8, fraction = 2, message = "Presupuesto inválido (máx. 8 enteros y 2 decimales)") //TODO: definir presupuesto maximo
         BigDecimal maxBudget,
 
         @NotBlank(message = "El distrito es obligatorio")

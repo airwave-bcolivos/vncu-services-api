@@ -17,13 +17,11 @@ public enum Specialty {
         this.value = value;
     }
 
-    // Le dice a Spring que al devolver JSON, envíe este texto amigable
     @JsonValue
     public String getValue() {
         return value;
     }
 
-    // Permite que Spring acepte el texto exacto desde el request del frontend
     @JsonCreator
     public static Specialty fromString(String text) {
         for (Specialty specialty : Specialty.values()) {

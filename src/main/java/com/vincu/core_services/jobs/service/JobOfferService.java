@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Service
@@ -41,8 +42,6 @@ public class JobOfferService {
         this.clientProfileRepository = clientProfileRepository;
         this.ubigeoDistrictRepository = ubigeoDistrictRepository;
     }
-
-    // ---------- Consultas ----------
 
     public PageResponse<JobOfferSummaryResponse> getOpenOffers(
             Specialty specialty, String districtId, int page, int size) {
@@ -79,8 +78,6 @@ public class JobOfferService {
         return toDetail(offer, viewerId);
     }
 
-    // ---------- Creación ----------
-
     @Transactional
     public JobOfferResponse createJobOffer(JobOfferRequest request) {
 
@@ -98,8 +95,8 @@ public class JobOfferService {
                 .maxBudget(request.maxBudget())
                 .ubigeoDistrictId(request.ubigeoDistrictId())
                 .specificAddress(request.specificAddress().trim())
-                .latitude(request.latitude())
-                .longitude(request.longitude())
+                .latitude(BigDecimal.ZERO) //TODO: reemplazar con logica de api para obtener latitud
+                .longitude(BigDecimal.ZERO) //TODO: reemplazar con logica de api para obtener longitud
                 .build();
 
         JobOffer saved = jobOfferRepository.save(offer);
@@ -118,8 +115,6 @@ public class JobOfferService {
                 saved.getCreatedAt()
         );
     }
-
-    // ---------- Mapeos ----------
 
     private JobOfferSummaryResponse toSummary(JobOffer o) {
         return new JobOfferSummaryResponse(
