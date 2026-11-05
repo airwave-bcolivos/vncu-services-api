@@ -1,16 +1,18 @@
 package com.vincu.core_services.jobs.web;
 
-import com.vincu.core_services.jobs.dto.JobOfferRequest;
-import com.vincu.core_services.jobs.dto.JobOfferResponse;
+import com.vincu.core_services.jobs.dto.*;
+import com.vincu.core_services.jobs.domain.JobStatus;
 import com.vincu.core_services.jobs.service.JobOfferService;
 import com.vincu.core_services.users.domain.Specialty;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.vincu.core_services.jobs.dto.JobOfferDetailResponse;
-import com.vincu.core_services.jobs.dto.JobOfferSummaryResponse;
-import com.vincu.core_services.jobs.dto.PageResponse;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -24,7 +26,7 @@ public class JobOfferController {
     }
 
 
-
+    //TODO: posible logica para listar publicaciones para el maestro
     @GetMapping("/open")
     public ResponseEntity<PageResponse<JobOfferSummaryResponse>> getOpenOffers(
             @RequestParam(required = false) Specialty specialty,
@@ -36,10 +38,20 @@ public class JobOfferController {
 
     @GetMapping
     public ResponseEntity<PageResponse<JobOfferSummaryResponse>> getOffersByClient(
-            @RequestParam UUID clientId, // TODO: tomarlo del usuario autenticado
+            @RequestParam String clientId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo,
+            @RequestParam(required = false) Specialty specialty,
+            @RequestParam(required = false) BigDecimal minBudget,
+            @RequestParam(required = false) BigDecimal maxBudget,
+            @RequestParam(required = false) JobStatus status,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") Sort.Direction sortDirection,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(jobOfferService.getOffersByClient(clientId, page, size));
+        return ResponseEntity.ok(jobOfferService.getOffersByClient(
+                clientId, createdFrom, createdTo, specialty, minBudget, maxBudget,
+                status, sortBy, sortDirection, page, size));
     }
 
     @GetMapping("/{id}")

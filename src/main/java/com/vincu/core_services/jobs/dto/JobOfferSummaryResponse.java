@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record JobOfferSummaryResponse(
-        UUID id,
+        String id,
         String title,
         Specialty specialty,
         BigDecimal maxBudget,

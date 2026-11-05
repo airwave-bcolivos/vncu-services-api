@@ -12,7 +12,6 @@ import java.util.UUID;
 
 @Entity
 @Table(name="job_offers")
-//quite el Data por posibles errores futuros
 @Getter
 @Setter
 @ToString

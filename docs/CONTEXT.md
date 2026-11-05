@@ -21,9 +21,9 @@ independientes ("Maestros Obreros").
 
 ## 3. Estado Actual del Desarrollo
 
-### Frontend (`src/`)
+### Frontend (`../src`)
 
-- Estructura de carpetas corregida: `app`, `components`, `lib`, `services`, y `types` consolidadas dentro de `src/`.
+- Estructura de carpetas corregida: `app`, `components`, `lib`, `services`, y `types` consolidadas dentro de `../src`.
 - **Registro (`/register`):** Formulario dinámico por rol (Cliente/Técnico) validado con `react-hook-form`. Mapeo
   estricto del campo `specialty` con los Enums del backend. Redirección automática tras registro.
 - **Login (`/login`):** Formulario funcional. Guarda un token temporal (`vncu_token`) y el rol (`vncu_role`) en

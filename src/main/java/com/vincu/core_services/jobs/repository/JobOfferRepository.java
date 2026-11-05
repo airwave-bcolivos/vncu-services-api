@@ -18,7 +18,6 @@ import java.util.UUID;
 @Repository
 public interface JobOfferRepository extends JpaRepository<JobOffer, UUID>, JpaSpecificationExecutor<JobOffer> {
 
-    //filtrar por cliente
     @EntityGraph(attributePaths = "district")
     Page<JobOffer> findByClientId(UUID clientId, Pageable pageable);
 
