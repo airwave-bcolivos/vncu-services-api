@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -27,6 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DataJpaTest(properties = {
@@ -38,6 +41,7 @@ class JobOfferClientFiltersTest {
 
     @Autowired private JobOfferService service;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private EntityManager entityManager;
 
     private UUID clientId;
     private MockMvc mvc;
@@ -164,6 +168,39 @@ class JobOfferClientFiltersTest {
         assertThat(body.path("ubigeoDepartmentId").asText()).isEqualTo("15");
         assertThat(body.path("ubigeoDepartmentName").asText()).isEqualTo("Lima departamento");
         assertThat(body.path("specificAddress").isNull()).isTrue();
+    }
+
+    @ParameterizedTest
+    @EnumSource(JobStatus.class)
+    void cancelsOfferWithoutDeletingItAndSupportsRepeatedRequests(JobStatus initialStatus) throws Exception {
+        UUID offerId = jdbc.queryForObject("SELECT id FROM job_offers WHERE title = 'first'", UUID.class);
+        jdbc.update("UPDATE job_offers SET status = ? WHERE id = ?", initialStatus.name(), offerId);
+
+        mvc.perform(delete("/api/v1/jobs/{id}", offerId)).andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(jdbc.queryForObject("SELECT status FROM job_offers WHERE id = ?", String.class, offerId))
+                .isEqualTo("CANCELED");
+        assertThat(jdbc.queryForObject("SELECT title FROM job_offers WHERE id = ?", String.class, offerId))
+                .isEqualTo("first");
+        assertThat(service.getOpenOffers(null, null, 0, 50).content())
+                .extracting(JobOfferSummaryResponse::id).doesNotContain(offerId.toString());
+
+        mvc.perform(delete("/api/v1/jobs/{id}", offerId)).andExpect(status().isNoContent());
+        entityManager.flush();
+        assertThat(jdbc.queryForObject("SELECT status FROM job_offers WHERE id = ?", String.class, offerId))
+                .isEqualTo("CANCELED");
+    }
+
+    @Test
+    void cancelReturnsNotFoundForMissingOffer() throws Exception {
+        mvc.perform(delete("/api/v1/jobs/{id}", UUID.randomUUID())).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void cancelRejectsInvalidId() throws Exception {
+        mvc.perform(delete("/api/v1/jobs/invalid-id")).andExpect(status().isBadRequest());
     }
 
     private PageResponse<JobOfferSummaryResponse> unfiltered(String field, Sort.Direction direction, int page, int size) {

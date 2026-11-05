@@ -61,6 +61,12 @@ public class JobOfferController {
         return ResponseEntity.ok(jobOfferService.getOfferDetail(id, viewerId));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancelOffer(@PathVariable UUID id) {
+        jobOfferService.cancelOffer(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping
     public ResponseEntity<JobOfferResponse> createOffer(@Valid @RequestBody JobOfferRequest request) {
         JobOfferResponse response = jobOfferService.createJobOffer(request);
