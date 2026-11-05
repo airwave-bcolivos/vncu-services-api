@@ -38,22 +38,24 @@ public class ClientService {
         ClientProfile profile = findProfile(userId);
 
         String newEmail = request.email().trim();
-        boolean emailChanged = !profile.getUser().getEmail().equalsIgnoreCase(newEmail);
         String newTypeCode = request.documentTypeCode().trim();
         String newDocId = request.documentId().trim();
+
+        DocumentType finalType = profile.getDocumentType();
+        if (!finalType.getCode().equalsIgnoreCase(newTypeCode)) {
+            finalType = documentRepository.findByCode(newTypeCode)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "Tipo de documento no válido"));
+        }
+
+        validateDocumentFormat(finalType.getCode(), newDocId);
 
         boolean docIdChanged = !profile.getDocumentId().equals(newDocId);
         if (docIdChanged && clientProfileRepository.existsByDocumentId(newDocId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El documento ya está registrado");
         }
 
-        if (!profile.getDocumentType().getCode().equalsIgnoreCase(newTypeCode)) {
-            DocumentType newType = documentRepository.findByCode(newTypeCode)
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.BAD_REQUEST, "Tipo de documento no válido"));
-            profile.setDocumentType(newType);
-        }
-
+        boolean emailChanged = !profile.getUser().getEmail().equalsIgnoreCase(newEmail);
         if (emailChanged && userRepository.existsByEmail(newEmail)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado");
         }
@@ -64,6 +66,8 @@ public class ClientService {
         profile.setSecondLastname(blankToNull(request.secondLastname()));
         profile.setPhoneNumber(blankToNull(request.phoneNumber()));
         profile.setAddress(blankToNull(request.address()));
+        profile.setDocumentId(newDocId);
+        profile.setDocumentType(finalType);
 
         return toResponse(profile);
     }
@@ -96,5 +100,21 @@ public class ClientService {
 
     private String blankToNull(String value) {
         return (value == null || value.isBlank()) ? null : value.trim();
+    }
+
+    private void validateDocumentFormat(String typeCode, String documentId) {
+        switch (typeCode.toUpperCase()) {
+            case "DNI" -> {
+                if (!documentId.matches("^[0-9]{8}$"))
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "El DNI debe tener 8 dígitos");
+            }
+            case "CE" -> {
+                if (!documentId.matches("^[A-Za-z0-9]{12}$"))
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "El carnet de extranjería debe tener 12 caracteres");
+            }
+            default -> { } // otros tipos: solo aplica la validación general del DTO
+        }
     }
 }
