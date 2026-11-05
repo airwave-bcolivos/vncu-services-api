@@ -3,26 +3,26 @@ package com.vincu.core_services.jobs.service;
 import com.vincu.core_services.jobs.domain.JobOffer;
 import com.vincu.core_services.jobs.domain.JobStatus;
 import com.vincu.core_services.jobs.dto.JobOfferDetailResponse;
-import com.vincu.core_services.jobs.dto.JobOfferSummaryResponse;
-import com.vincu.core_services.jobs.dto.PageResponse;
-import com.vincu.core_services.ubigeo.repository.UbigeoDistrictRepository;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import com.vincu.core_services.jobs.dto.JobOfferRequest;
 import com.vincu.core_services.jobs.dto.JobOfferResponse;
+import com.vincu.core_services.jobs.dto.JobOfferSummaryResponse;
+import com.vincu.core_services.jobs.dto.PageResponse;
 import com.vincu.core_services.jobs.repository.JobOfferRepository;
+import com.vincu.core_services.ubigeo.repository.UbigeoDistrictRepository;
+import com.vincu.core_services.users.domain.ClientProfile;
+import com.vincu.core_services.users.domain.Specialty;
+import com.vincu.core_services.users.domain.TechnicianProfile;
 import com.vincu.core_services.users.repository.ClientProfileRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
 import java.util.UUID;
-import com.vincu.core_services.users.domain.Specialty;
-import org.springframework.data.jpa.domain.Specification;
-
-import java.math.BigDecimal;
-
 
 @Service
 @Transactional(readOnly = true)
@@ -32,20 +32,21 @@ public class JobOfferService {
 
     private final JobOfferRepository jobOfferRepository;
     private final ClientProfileRepository clientProfileRepository;
-    private final UbigeoDistrictRepository  ubigeoDistrictRepository;
+    private final UbigeoDistrictRepository ubigeoDistrictRepository;
 
-    public JobOfferService(JobOfferRepository _jobOfferRepository,
-                           ClientProfileRepository _clientProfileRepository,
+    public JobOfferService(JobOfferRepository jobOfferRepository,
+                           ClientProfileRepository clientProfileRepository,
                            UbigeoDistrictRepository ubigeoDistrictRepository) {
-        this.jobOfferRepository = _jobOfferRepository;
-        this.clientProfileRepository = _clientProfileRepository;
+        this.jobOfferRepository = jobOfferRepository;
+        this.clientProfileRepository = clientProfileRepository;
         this.ubigeoDistrictRepository = ubigeoDistrictRepository;
     }
+
+    // ---------- Consultas ----------
 
     public PageResponse<JobOfferSummaryResponse> getOpenOffers(
             Specialty specialty, String districtId, int page, int size) {
 
-        // Base: solo ofertas abiertas
         Specification<JobOffer> spec =
                 (root, query, cb) -> cb.equal(root.get("status"), JobStatus.OPEN);
 
@@ -63,61 +64,22 @@ public class JobOfferService {
         );
     }
 
-    public PageResponse<JobOfferSummaryResponse> getOffersByClient(String clientId, int page, int size) {
-
+    public PageResponse<JobOfferSummaryResponse> getOffersByClient(UUID clientId, int page, int size) {
         return PageResponse.from(
-                jobOfferRepository.findByClientId(UUID.fromString(clientId), buildPageable(page, size))
+                jobOfferRepository.findByClientId(clientId, buildPageable(page, size))
                         .map(this::toSummary)
         );
     }
 
     public JobOfferDetailResponse getOfferDetail(UUID jobId, UUID viewerId) {
-        JobOffer offer = jobOfferRepository.findById(jobId)
+        JobOffer offer = jobOfferRepository.findWithDetailsById(jobId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta no existe"));
 
         return toDetail(offer, viewerId);
     }
 
-    private JobOfferSummaryResponse toSummary(JobOffer o) {
-        return new JobOfferSummaryResponse(
-                o.getId(),
-                o.getTitle(),
-                o.getSpecialty(),
-                o.getMaxBudget(),
-                o.getStatus(),
-                o.getUbigeoDistrictId(),
-                o.getCreatedAt()
-        );
-    }
-
-    private JobOfferDetailResponse toDetail(JobOffer o, UUID viewerId) {
-        // Regla de privacidad: la dirección exacta solo la ven
-        // el dueño de la oferta o el técnico asignado cuando está IN_PROGRESS
-        boolean isOwner = o.getClientId().equals(viewerId);
-        boolean isAssignedTechnician = o.getStatus() == JobStatus.IN_PROGRESS
-                && o.getTechnicianId() != null
-                && o.getTechnicianId().equals(viewerId);
-
-        String address = (isOwner || isAssignedTechnician) ? o.getSpecificAddress() : null;
-
-        return new JobOfferDetailResponse(
-                o.getId(),
-                o.getClientId(),
-                o.getTechnicianId(),
-                o.getTitle(),
-                o.getSpecialty(),
-                o.getDescription(),
-                o.getMaxBudget(),
-                o.getStatus(),
-                o.getUbigeoDistrictId(),
-                address,
-                o.getLatitude(),
-                o.getLongitude(),
-                o.getCreatedAt(),
-                o.getUpdatedAt()
-        );
-    }
+    // ---------- Creación ----------
 
     @Transactional
     public JobOfferResponse createJobOffer(JobOfferRequest request) {
@@ -128,7 +90,6 @@ public class JobOfferService {
         if (!ubigeoDistrictRepository.existsById(request.ubigeoDistrictId()))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El distrito no existe");
 
-        // Uso del patrón Builder de Lombok
         JobOffer offer = JobOffer.builder()
                 .clientId(request.clientId())
                 .title(request.title().trim())
@@ -136,32 +97,88 @@ public class JobOfferService {
                 .description(request.description().trim())
                 .maxBudget(request.maxBudget())
                 .ubigeoDistrictId(request.ubigeoDistrictId())
-                .specificAddress(request.specificAddress())
+                .specificAddress(request.specificAddress().trim())
                 .latitude(request.latitude())
                 .longitude(request.longitude())
-                //.latitude(BigDecimal.ZERO.equals(request.latitude()) ? BigDecimal.ZERO : request.latitude())
-                //.longitude(BigDecimal.ZERO.equals(request.longitude()) ? BigDecimal.ZERO : request.longitude())
-                // status, createdAt y updatedAt se manejan solos en los @PrePersist de la entidad
                 .build();
 
-        JobOffer savedOffer = jobOfferRepository.save(offer);
+        JobOffer saved = jobOfferRepository.save(offer);
 
         return new JobOfferResponse(
-                savedOffer.getId(),
-                savedOffer.getClientId(),
-                savedOffer.getTitle(),
-                savedOffer.getSpecialty(),
-                savedOffer.getDescription(),
-                savedOffer.getMaxBudget(),
-                savedOffer.getStatus(),
-                savedOffer.getUbigeoDistrictId(),
-                savedOffer.getLatitude(),
-                savedOffer.getLongitude(),
-                savedOffer.getCreatedAt()
+                saved.getId(),
+                saved.getClientId(),
+                saved.getTitle(),
+                saved.getSpecialty(),
+                saved.getDescription(),
+                saved.getMaxBudget(),
+                saved.getStatus(),
+                saved.getUbigeoDistrictId(),
+                saved.getLatitude(),
+                saved.getLongitude(),
+                saved.getCreatedAt()
         );
     }
 
-     // un private reutilizable
+    // ---------- Mapeos ----------
+
+    private JobOfferSummaryResponse toSummary(JobOffer o) {
+        return new JobOfferSummaryResponse(
+                o.getId(),
+                o.getTitle(),
+                o.getSpecialty(),
+                o.getMaxBudget(),
+                o.getStatus(),
+                o.getUbigeoDistrictId(),
+                districtName(o),
+                o.getCreatedAt()
+        );
+    }
+
+    private JobOfferDetailResponse toDetail(JobOffer o, UUID viewerId) {
+        boolean isOwner = o.getClientId().equals(viewerId);
+        boolean isAssignedTechnician = o.getStatus() == JobStatus.IN_PROGRESS
+                && o.getTechnicianId() != null
+                && o.getTechnicianId().equals(viewerId);
+
+        boolean canSeePrivateData = isOwner || isAssignedTechnician;
+
+        String address = canSeePrivateData ? o.getSpecificAddress() : null;
+        String clientName = canSeePrivateData ? fullName(o.getClient()) : null;
+        String technicianName = o.getTechnician() != null ? fullName(o.getTechnician()) : null;
+
+        return new JobOfferDetailResponse(
+                o.getId(),
+                o.getClientId(),
+                clientName,
+                o.getTechnicianId(),
+                technicianName,
+                o.getTitle(),
+                o.getSpecialty(),
+                o.getDescription(),
+                o.getMaxBudget(),
+                o.getStatus(),
+                o.getUbigeoDistrictId(),
+                districtName(o),
+                address,
+                o.getLatitude(),
+                o.getLongitude(),
+                o.getCreatedAt(),
+                o.getUpdatedAt()
+        );
+    }
+
+    private String fullName(ClientProfile c) {
+        return c == null ? null : c.getNames() + " " + c.getLastname();
+    }
+
+    private String fullName(TechnicianProfile t) {
+        return t == null ? null : t.getNames() + " " + t.getLastname();
+    }
+
+    private String districtName(JobOffer o) {
+        return o.getDistrict() != null ? o.getDistrict().getName() : null;
+    }
+
     private Pageable buildPageable(int page, int size) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);

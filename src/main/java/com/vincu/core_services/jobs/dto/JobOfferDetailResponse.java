@@ -10,13 +10,16 @@ import java.util.UUID;
 public record JobOfferDetailResponse(
         UUID id,
         UUID clientId,
+        String clientName,
         UUID technicianId,
+        String technicianName,
         String title,
         Specialty specialty,
         String description,
         BigDecimal maxBudget,
         JobStatus status,
         String ubigeoDistrictId,
+        String ubigeoDistrictName,
         String specificAddress, // null si el que consulta no tiene permiso
         BigDecimal latitude,
         BigDecimal longitude,

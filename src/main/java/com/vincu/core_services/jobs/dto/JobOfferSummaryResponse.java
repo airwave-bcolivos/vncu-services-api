@@ -14,5 +14,6 @@ public record JobOfferSummaryResponse(
         BigDecimal maxBudget,
         JobStatus status,
         String ubigeoDistrictId,
+        String ubigeoDistrictName,
         LocalDateTime createdAt
 ) { }
