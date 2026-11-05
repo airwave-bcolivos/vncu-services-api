@@ -9,7 +9,7 @@ import com.vincu.core_services.users.domain.User;
 import com.vincu.core_services.users.dto.ClientRegisterRequest;
 import com.vincu.core_services.users.dto.TechnicianRegisterRequest;
 import com.vincu.core_services.users.repository.ClientProfileRepository;
-import com.vincu.core_services.users.repository.DocumentTypeRepository;
+import com.vincu.core_services.users.repository.DocumentRepository;
 import com.vincu.core_services.users.repository.TechnicianProfileRepository;
 import com.vincu.core_services.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ClientProfileRepository clientProfileRepository;
     private final TechnicianProfileRepository technicianProfileRepository;
-    private final DocumentTypeRepository documentTypeRepository;
+    private final DocumentRepository documentRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -84,7 +84,7 @@ public class UserService {
     }
 
     private DocumentType getDocumentType(String documentTypeCode) {
-        return documentTypeRepository.findByCode(documentTypeCode)
+        return documentRepository.findByCode(documentTypeCode)
                 .orElseThrow(() -> new IllegalArgumentException("Tipo de documento no válido."));
     }
 }

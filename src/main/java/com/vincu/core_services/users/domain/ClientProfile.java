@@ -54,4 +54,10 @@ public class ClientProfile {
 
     @Column(name = "updated_at", insertable = false)
     private LocalDateTime updatedAt;
+
+    //
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
