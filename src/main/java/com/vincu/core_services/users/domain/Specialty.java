@@ -3,7 +3,7 @@ package com.vincu.core_services.users.domain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum Specialty {
+public enum  Specialty {
     GASFITERO("Gasfitero"),
     ELECTRICISTA("Electricista"),
     PINTURA("Pintura"),
