@@ -3,6 +3,7 @@ package com.vincu.core_services.users.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record ClientRegisterRequest(
         @NotBlank(message = "El correo es obligatorio")
@@ -27,6 +28,9 @@ public record ClientRegisterRequest(
         String documentId,
 
         @NotBlank(message = "El número de teléfono es obligatorio")
-        String phoneNumber
+        String phoneNumber,
+
+        @Size(max = 255, message = "La direccion no puede pasar de los 255 caracteres")
+        String address
 ) {
 }
