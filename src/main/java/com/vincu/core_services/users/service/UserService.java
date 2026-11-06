@@ -47,6 +47,7 @@ public class UserService {
         profile.setDocumentType(docType);
         profile.setDocumentId(request.documentId());
         profile.setPhoneNumber(request.phoneNumber());
+        profile.setAddress(request.address());
         clientProfileRepository.save(profile);
     }
 
