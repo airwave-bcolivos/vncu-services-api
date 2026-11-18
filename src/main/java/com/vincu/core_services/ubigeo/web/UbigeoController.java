@@ -1,4 +1,4 @@
-package com.vincu.core_services.ubigeo.controller;
+package com.vincu.core_services.ubigeo.web;
 
 import com.vincu.core_services.ubigeo.dto.DistrictResponse;
 import com.vincu.core_services.ubigeo.service.UbigeoService;
