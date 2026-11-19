@@ -39,7 +39,7 @@ public class JobReviewService {
         this.technicianProfileRepository = technicianProfileRepository;
     }
 
-    // Escenario 1: calificar un trabajo terminado
+
     @Transactional
     public JobReviewResponse createReview(UUID jobOfferId, JobReviewRequest request) {
 
@@ -47,7 +47,6 @@ public class JobReviewService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta de trabajo no existe"));
 
-        // Solo el dueño de la oferta puede calificar
         if (!offer.getClientId().equals(request.clientId())) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "Solo el cliente que publicó el trabajo puede calificarlo");
@@ -58,19 +57,17 @@ public class JobReviewService {
                     HttpStatus.CONFLICT, "Solo se pueden calificar trabajos finalizados");
         }
 
-        // El técnico sale de la oferta, nunca del body (puede ser null por ON DELETE SET NULL)
         UUID technicianId = offer.getTechnicianId();
         if (technicianId == null) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "El trabajo no tiene un técnico asignado");
         }
 
-        // 1. AQUÍ: Guardas la referencia del técnico bloqueado en una variable
+
         TechnicianProfile technician = technicianProfileRepository.findByIdForUpdate(technicianId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "El técnico asignado no existe"));
 
-        // Escenario 2: una sola reseña por trabajo
         if (reviewRepository.existsByJobOfferId(jobOfferId)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Este trabajo ya fue calificado");
@@ -83,14 +80,11 @@ public class JobReviewService {
                 .comment(request.comment() == null ? null : request.comment().trim())
                 .build());
 
-        // Recalcula promedio y cantidad en la MISMA transacción
         technicianProfileRepository.refreshRatingSummary(technicianId);
 
-        // 2. AQUÍ: Usas los objetos que ya tienes en memoria
         return toResponse(saved, offer, technician);
     }
 
-    // Escenario 2: ver la reseña ya enviada (el front deshabilita el formulario)
     public JobReviewResponse getReviewByJobOffer(UUID jobOfferId) {
         return reviewRepository.findByJobOfferId(jobOfferId)
                 .map(this::toResponse)
@@ -98,7 +92,6 @@ public class JobReviewService {
                         HttpStatus.NOT_FOUND, "Este trabajo aún no tiene reseña"));
     }
 
-    // Reseñas del perfil de un técnico
     public PageResponse<JobReviewResponse> getReviewsByTechnician(UUID technicianId, int page, int size) {
         Pageable pageable = PageRequest.of(
                 Math.max(page, 0),
@@ -109,12 +102,10 @@ public class JobReviewService {
         return PageResponse.from(result.map(this::toResponse));
     }
 
-    // Para los métodos GET (usa las relaciones cargadas por @EntityGraph)
     private JobReviewResponse toResponse(JobReview r) {
         return toResponse(r, r.getJobOffer(), r.getTechnician());
     }
 
-    // Mapeo centralizado y concatenación de apellidos
     private JobReviewResponse toResponse(JobReview r, JobOffer offer, TechnicianProfile tech) {
         String fullLastName = (tech.getSecondLastname() == null || tech.getSecondLastname().isBlank())
                 ? tech.getLastname()
