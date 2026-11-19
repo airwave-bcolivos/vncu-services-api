@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -54,4 +55,10 @@ public class TechnicianProfile {
 
     @Column(name = "updated_at", insertable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "average_rating", precision = 3, scale = 2, insertable = false, updatable = false)
+    private BigDecimal averageRating;
+
+    @Column(name = "rating_count", insertable = false, updatable = false)
+    private Integer ratingCount;
 }
