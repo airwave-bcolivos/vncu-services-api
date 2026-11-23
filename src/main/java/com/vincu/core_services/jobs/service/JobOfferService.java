@@ -44,11 +44,18 @@ public class JobOfferService {
         this.ubigeoDistrictRepository = ubigeoDistrictRepository;
     }
 
-    public PageResponse<JobOfferSummaryResponse> getOpenOffers(Specialty specialty, String districtId, int page, int size)
+    public PageResponse<JobOfferSummaryResponse> getOpenOffers(Specialty specialty, String districtId, BigDecimal minRating,int page, int size)
     {
 
         Specification<JobOffer> spec =
                 (root, query, cb) -> cb.equal(root.get("status"), JobStatus.OPEN);
+
+        if (minRating != null &&
+                (minRating.compareTo(BigDecimal.ONE) <0 ||
+                        minRating.compareTo(BigDecimal.valueOf(5)) > 0 ))
+        {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La calificación mínima debe estar entre 1 y 5");
+        }
 
         if (specialty != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("specialty"), specialty));
@@ -56,6 +63,11 @@ public class JobOfferService {
         if (districtId != null && !districtId.isBlank()) {
             String id = districtId.trim();
             spec = spec.and((root, query, cb) -> cb.equal(root.get("ubigeoDistrictId"), id));
+        }
+
+        if (minRating != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.greaterThanOrEqualTo(root.get("client").get("averageRating"), minRating));
         }
 
         return PageResponse.from(
@@ -143,8 +155,8 @@ public class JobOfferService {
     @Transactional
     public JobOfferResponse createJobOffer(JobOfferRequest request) {
 
-        if (!clientProfileRepository.existsById(request.clientId()))
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El cliente no existe");
+        ClientProfile client = clientProfileRepository.findById(request.clientId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El cliente no existe"));
 
         if (!ubigeoDistrictRepository.existsById(request.ubigeoDistrictId()))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El distrito no existe");
@@ -174,11 +186,14 @@ public class JobOfferService {
                 saved.getUbigeoDistrictId(),
                 saved.getLatitude(),
                 saved.getLongitude(),
+                client.getAverageRating(),
+                client.getRatingCount(),
                 saved.getCreatedAt()
         );
     }
 
     private JobOfferSummaryResponse toSummary(JobOffer o) {
+        ClientProfile client = o.getClient();
         return new JobOfferSummaryResponse(
                 o.getId().toString(),
                 o.getTitle(),
@@ -187,6 +202,8 @@ public class JobOfferService {
                 o.getStatus(),
                 o.getUbigeoDistrictId(),
                 districtName(o),
+                client != null ? client.getAverageRating() : null,
+                client != null ? client.getRatingCount() : 0,
                 o.getCreatedAt()
         );
     }
@@ -200,6 +217,7 @@ public class JobOfferService {
 
         boolean canSeePrivateData = isOwner || isAssignedTechnician;
 
+        ClientProfile client = jobOffer.getClient();
         String address = canSeePrivateData ? jobOffer.getSpecificAddress() : null;
         String clientName = canSeePrivateData ? fullName(jobOffer.getClient()) : null;
         String technicianName = jobOffer.getTechnician() != null ? fullName(jobOffer.getTechnician()) : null;
@@ -228,6 +246,8 @@ public class JobOfferService {
                 address,
                 jobOffer.getLatitude(),
                 jobOffer.getLongitude(),
+                client != null ? client.getAverageRating() : null,
+                client != null ? client.getRatingCount() : 0,
                 jobOffer.getCreatedAt(),
                 jobOffer.getUpdatedAt()
         );

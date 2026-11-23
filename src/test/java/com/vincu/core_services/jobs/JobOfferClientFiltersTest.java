@@ -184,7 +184,7 @@ class JobOfferClientFiltersTest {
                 .isEqualTo("CANCELED");
         assertThat(jdbc.queryForObject("SELECT title FROM job_offers WHERE id = ?", String.class, offerId))
                 .isEqualTo("first");
-        assertThat(service.getOpenOffers(null, null, 0, 50).content())
+        assertThat(service.getOpenOffers(null, null, null ,0, 50).content())
                 .extracting(JobOfferSummaryResponse::id).doesNotContain(offerId.toString());
 
         mvc.perform(delete("/api/v1/jobs/{id}", offerId)).andExpect(status().isNoContent());

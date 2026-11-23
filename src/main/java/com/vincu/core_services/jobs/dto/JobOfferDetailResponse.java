@@ -27,6 +27,8 @@ public record JobOfferDetailResponse(
         String specificAddress, // null si el que consulta no tiene permiso
         BigDecimal latitude,
         BigDecimal longitude,
+        BigDecimal clientAverageRating,
+        Integer clientRatingCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) { }

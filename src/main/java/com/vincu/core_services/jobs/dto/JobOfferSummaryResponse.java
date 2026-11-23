@@ -5,7 +5,6 @@ import com.vincu.core_services.users.domain.Specialty;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public record JobOfferSummaryResponse(
         String id,
@@ -15,5 +14,7 @@ public record JobOfferSummaryResponse(
         JobStatus status,
         String ubigeoDistrictId,
         String ubigeoDistrictName,
+        BigDecimal clientAverageRating,
+        Integer clientRatingCount,
         LocalDateTime createdAt
 ) { }

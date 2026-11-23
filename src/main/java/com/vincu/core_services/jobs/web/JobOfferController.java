@@ -31,9 +31,10 @@ public class JobOfferController {
     public ResponseEntity<PageResponse<JobOfferSummaryResponse>> getOpenOffers(
             @RequestParam(required = false) Specialty specialty,
             @RequestParam(required = false) String districtId,
+            @RequestParam(required = false) BigDecimal minRating,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(jobOfferService.getOpenOffers(specialty, districtId, page, size));
+        return ResponseEntity.ok(jobOfferService.getOpenOffers(specialty, districtId, minRating ,page, size));
     }
 
     @GetMapping
