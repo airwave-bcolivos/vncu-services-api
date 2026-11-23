@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public record JobReviewRequest(
-        // Quien califica. Más adelante saldrá del usuario autenticado
+        //TODO: Quien califica. Más adelante saldrá del usuario autenticado
         @NotNull(message = "El cliente es obligatorio")
         UUID clientId,
 

@@ -9,6 +9,7 @@ import com.vincu.core_services.users.domain.ClientProfile;
 import com.vincu.core_services.users.domain.Specialty;
 import com.vincu.core_services.users.domain.TechnicianProfile;
 import com.vincu.core_services.users.repository.ClientProfileRepository;
+import com.vincu.core_services.users.repository.TechnicianProfileRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -28,20 +29,23 @@ public class JobOfferService {
 
     private static final int MAX_PAGE_SIZE = 50;
 
+    private final TechnicianProfileRepository techinicianRepository;
     private final JobOfferRepository jobOfferRepository;
     private final ClientProfileRepository clientProfileRepository;
     private final UbigeoDistrictRepository ubigeoDistrictRepository;
 
-    public JobOfferService(JobOfferRepository jobOfferRepository,
+    public JobOfferService(TechnicianProfileRepository techinicianRepository,
+                           JobOfferRepository jobOfferRepository,
                            ClientProfileRepository clientProfileRepository,
                            UbigeoDistrictRepository ubigeoDistrictRepository) {
+        this.techinicianRepository = techinicianRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.clientProfileRepository = clientProfileRepository;
         this.ubigeoDistrictRepository = ubigeoDistrictRepository;
     }
 
-    public PageResponse<JobOfferSummaryResponse> getOpenOffers(
-            Specialty specialty, String districtId, int page, int size) {
+    public PageResponse<JobOfferSummaryResponse> getOpenOffers(Specialty specialty, String districtId, int page, int size)
+    {
 
         Specification<JobOffer> spec =
                 (root, query, cb) -> cb.equal(root.get("status"), JobStatus.OPEN);

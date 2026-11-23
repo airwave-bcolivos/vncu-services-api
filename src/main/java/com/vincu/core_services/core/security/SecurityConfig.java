@@ -53,7 +53,7 @@ public class SecurityConfig {
                                 "/api/v1/jobs",
                                 "/api/v1/jobs/**",
                                 "/api/v1/ubigeo/**",
-                                "/api/v1/clients/**",
+                                "/api/v1/clients/**", "/api/v1/client/**",
                                 "/api/v1/technicians/**",
                                 "/api/v1/complaints", "/api/v1/complaints/**"// TODO: quitar al migrar a JWT
                         ).permitAll()
