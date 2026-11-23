@@ -61,4 +61,13 @@ public class TechnicianProfile {
 
     @Column(name = "rating_count", insertable = false, updatable = false)
     private Integer ratingCount;
+
+    @Column(name = "consultation_fee", nullable = false, precision = 10, scale = 2)
+    private BigDecimal consultationFee;
+
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
