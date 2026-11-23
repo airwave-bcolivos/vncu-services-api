@@ -3,11 +3,11 @@ package com.vincu.core_services.jobs.service;
 import com.vincu.core_services.jobs.domain.JobOffer;
 import com.vincu.core_services.jobs.domain.JobStatus;
 import com.vincu.core_services.jobs.dto.*;
+import com.vincu.core_services.jobs.mapper.JobOfferMapper;
 import com.vincu.core_services.jobs.repository.JobOfferRepository;
 import com.vincu.core_services.ubigeo.repository.UbigeoDistrictRepository;
 import com.vincu.core_services.users.domain.ClientProfile;
 import com.vincu.core_services.users.domain.Specialty;
-import com.vincu.core_services.users.domain.TechnicianProfile;
 import com.vincu.core_services.users.repository.ClientProfileRepository;
 import com.vincu.core_services.users.repository.TechnicianProfileRepository;
 import org.springframework.data.domain.PageRequest;
@@ -29,31 +29,33 @@ public class JobOfferService {
 
     private static final int MAX_PAGE_SIZE = 50;
 
+    private final JobOfferMapper jobOfferMapper;
     private final TechnicianProfileRepository techinicianRepository;
     private final JobOfferRepository jobOfferRepository;
     private final ClientProfileRepository clientProfileRepository;
     private final UbigeoDistrictRepository ubigeoDistrictRepository;
 
-    public JobOfferService(TechnicianProfileRepository techinicianRepository,
+    public JobOfferService(JobOfferMapper jobOfferMapper,
+                           TechnicianProfileRepository techinicianRepository,
                            JobOfferRepository jobOfferRepository,
                            ClientProfileRepository clientProfileRepository,
                            UbigeoDistrictRepository ubigeoDistrictRepository) {
+        this.jobOfferMapper = jobOfferMapper;
         this.techinicianRepository = techinicianRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.clientProfileRepository = clientProfileRepository;
         this.ubigeoDistrictRepository = ubigeoDistrictRepository;
     }
 
-    public PageResponse<JobOfferSummaryResponse> getOpenOffers(Specialty specialty, String districtId, BigDecimal minRating,int page, int size)
-    {
+    public PageResponse<JobOfferSummaryResponse> getOpenOffers(
+            Specialty specialty, String districtId, BigDecimal minRating, int page, int size) {
 
         Specification<JobOffer> spec =
                 (root, query, cb) -> cb.equal(root.get("status"), JobStatus.OPEN);
 
-        if (minRating != null &&
-                (minRating.compareTo(BigDecimal.ONE) <0 ||
-                        minRating.compareTo(BigDecimal.valueOf(5)) > 0 ))
-        {
+        if (minRating != null
+                && (minRating.compareTo(BigDecimal.ONE) < 0
+                || minRating.compareTo(BigDecimal.valueOf(5)) > 0)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La calificación mínima debe estar entre 1 y 5");
         }
 
@@ -64,7 +66,6 @@ public class JobOfferService {
             String id = districtId.trim();
             spec = spec.and((root, query, cb) -> cb.equal(root.get("ubigeoDistrictId"), id));
         }
-
         if (minRating != null) {
             spec = spec.and((root, query, cb) ->
                     cb.greaterThanOrEqualTo(root.get("client").get("averageRating"), minRating));
@@ -72,12 +73,11 @@ public class JobOfferService {
 
         return PageResponse.from(
                 jobOfferRepository.findAll(spec, buildPageable(page, size))
-                        .map(this::toSummary)
+                        .map(jobOfferMapper::toSummary)
         );
     }
 
-    public PageResponse<JobOfferSummaryResponse> getOffersByClient(
-            String clientId, LocalDate createdFrom, LocalDate createdTo, Specialty specialty,
+    public PageResponse<JobOfferSummaryResponse> getOffersByClient( String clientId, LocalDate createdFrom, LocalDate createdTo, Specialty specialty,
             BigDecimal minBudget, BigDecimal maxBudget, JobStatus status,
             String sortBy, Sort.Direction sortDirection, int page, int size) {
         if (createdFrom != null && createdTo != null && createdFrom.isAfter(createdTo)) {
@@ -132,11 +132,11 @@ public class JobOfferService {
         sort = sort.and(Sort.by("id"));
         return PageResponse.from(
                 jobOfferRepository.findAll(spec, buildPageable(page, size, sort))
-                        .map(this::toSummary)
+                        .map(jobOfferMapper::toSummary)
         );
     }
 
-    //visualizacion de trabajos por estado del trabajo por tecnico
+    // Visualización de trabajos por estado del trabajo por técnico
     public PageResponse<JobOfferSummaryResponse> getOffersByTechnician(
             String technicianId,
             JobStatus status,
@@ -158,7 +158,7 @@ public class JobOfferService {
 
         return PageResponse.from(
                 jobOfferRepository.findAll(spec, buildPageable(page, size))
-                        .map(this::toSummary)
+                        .map(jobOfferMapper::toSummary)
         );
     }
 
@@ -167,7 +167,11 @@ public class JobOfferService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta no existe"));
 
-        return toDetail(offer, UUID.fromString(viewerId));
+        UUID viewerUuid = (viewerId != null && !viewerId.isBlank())
+                ? UUID.fromString(viewerId.trim())
+                : null;
+
+        return jobOfferMapper.toDetail(offer, viewerUuid);
     }
 
     @Transactional
@@ -180,12 +184,12 @@ public class JobOfferService {
 
     @Transactional
     public JobOfferResponse createJobOffer(JobOfferRequest request) {
-
         ClientProfile client = clientProfileRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El cliente no existe"));
 
-        if (!ubigeoDistrictRepository.existsById(request.ubigeoDistrictId()))
+        if (!ubigeoDistrictRepository.existsById(request.ubigeoDistrictId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El distrito no existe");
+        }
 
         JobOffer offer = JobOffer.builder()
                 .clientId(request.clientId())
@@ -195,100 +199,12 @@ public class JobOfferService {
                 .maxBudget(request.maxBudget())
                 .ubigeoDistrictId(request.ubigeoDistrictId())
                 .specificAddress(request.specificAddress().trim())
-                .latitude(BigDecimal.ZERO) //TODO: reemplazar con logica de api para obtener latitud
-                .longitude(BigDecimal.ZERO) //TODO: reemplazar con logica de api para obtener longitud
+                .latitude(BigDecimal.ZERO) // TODO: reemplazar con logica de api para obtener latitud
+                .longitude(BigDecimal.ZERO) // TODO: reemplazar con logica de api para obtener longitud
                 .build();
 
         JobOffer saved = jobOfferRepository.save(offer);
-
-        return new JobOfferResponse(
-                saved.getId(),
-                saved.getClientId(),
-                saved.getTitle(),
-                saved.getSpecialty(),
-                saved.getDescription(),
-                saved.getMaxBudget(),
-                saved.getStatus(),
-                saved.getUbigeoDistrictId(),
-                saved.getLatitude(),
-                saved.getLongitude(),
-                client.getAverageRating(),
-                client.getRatingCount(),
-                saved.getCreatedAt()
-        );
-    }
-
-    private JobOfferSummaryResponse toSummary(JobOffer o) {
-        ClientProfile client = o.getClient();
-        return new JobOfferSummaryResponse(
-                o.getId().toString(),
-                o.getTitle(),
-                o.getSpecialty(),
-                o.getMaxBudget(),
-                o.getStatus(),
-                o.getUbigeoDistrictId(),
-                districtName(o),
-                client != null ? client.getAverageRating() : null,
-                client != null ? client.getRatingCount() : 0,
-                o.getCreatedAt()
-        );
-    }
-
-    private JobOfferDetailResponse toDetail(JobOffer jobOffer, UUID viewerId) {
-        //TODO: Pensar como hacer para que no falle cuando se agregue el administrador (id admin)
-        boolean isOwner = jobOffer.getClientId().equals(viewerId);
-        boolean isAssignedTechnician = jobOffer.getStatus() == JobStatus.IN_PROGRESS
-                && jobOffer.getTechnicianId() != null
-                && jobOffer.getTechnicianId().equals(viewerId);
-
-        boolean canSeePrivateData = isOwner || isAssignedTechnician;
-
-        ClientProfile client = jobOffer.getClient();
-        String address = canSeePrivateData ? jobOffer.getSpecificAddress() : null;
-        String clientName = canSeePrivateData ? fullName(jobOffer.getClient()) : null;
-        String technicianName = jobOffer.getTechnician() != null ? fullName(jobOffer.getTechnician()) : null;
-
-        var district = jobOffer.getDistrict();
-        var province = district != null ? district.getProvince() : null;
-        var department = province != null ? province.getDepartment() : null;
-
-        return new JobOfferDetailResponse(
-                jobOffer.getId(),
-                jobOffer.getClientId(),
-                clientName,
-                jobOffer.getTechnicianId(),
-                technicianName,
-                jobOffer.getTitle(),
-                jobOffer.getSpecialty(),
-                jobOffer.getDescription(),
-                jobOffer.getMaxBudget(),
-                jobOffer.getStatus(),
-                jobOffer.getUbigeoDistrictId(),
-                districtName(jobOffer),
-                district != null ? district.getProvinceId() : null,
-                province != null ? province.getName() : null,
-                province != null ? province.getDepartmentId() : null,
-                department != null ? department.getName() : null,
-                address,
-                jobOffer.getLatitude(),
-                jobOffer.getLongitude(),
-                client != null ? client.getAverageRating() : null,
-                client != null ? client.getRatingCount() : 0,
-                jobOffer.getCreatedAt(),
-                jobOffer.getUpdatedAt()
-        );
-    }
-
-    private String fullName(ClientProfile c) {
-        return c == null ? null : c.getNames() + " " + c.getLastname();
-    }
-
-    private String fullName(TechnicianProfile t) {
-        return t == null ? null : t.getNames() + " " + t.getLastname();
-    }
-
-    private String districtName(JobOffer o) {
-        return o.getDistrict() != null ? o.getDistrict().getName() : null;
+        return jobOfferMapper.toResponse(saved, client);
     }
 
     private Pageable buildPageable(int page, int size) {

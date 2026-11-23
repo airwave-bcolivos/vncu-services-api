@@ -11,6 +11,7 @@ public record JobOfferDetailResponse(
         UUID id,
         UUID clientId,
         String clientName,
+        String clientPhone, // null si no tiene permiso
         UUID technicianId,
         String technicianName,
         String title,
