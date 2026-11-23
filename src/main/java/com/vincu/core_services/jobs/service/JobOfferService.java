@@ -34,17 +34,19 @@ public class JobOfferService {
     private final JobOfferRepository jobOfferRepository;
     private final ClientProfileRepository clientProfileRepository;
     private final UbigeoDistrictRepository ubigeoDistrictRepository;
+    private final NominatimGeocodingService geocodingService;
 
     public JobOfferService(JobOfferMapper jobOfferMapper,
                            TechnicianProfileRepository techinicianRepository,
                            JobOfferRepository jobOfferRepository,
                            ClientProfileRepository clientProfileRepository,
-                           UbigeoDistrictRepository ubigeoDistrictRepository) {
+                           UbigeoDistrictRepository ubigeoDistrictRepository, NominatimGeocodingService geocodingService) {
         this.jobOfferMapper = jobOfferMapper;
         this.techinicianRepository = techinicianRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.clientProfileRepository = clientProfileRepository;
         this.ubigeoDistrictRepository = ubigeoDistrictRepository;
+        this.geocodingService = geocodingService;
     }
 
     public PageResponse<JobOfferSummaryResponse> getOpenOffers(
@@ -187,8 +189,27 @@ public class JobOfferService {
         ClientProfile client = clientProfileRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El cliente no existe"));
 
-        if (!ubigeoDistrictRepository.existsById(request.ubigeoDistrictId())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El distrito no existe");
+        var district = ubigeoDistrictRepository.findById(request.ubigeoDistrictId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El distrito no existe"));
+
+        BigDecimal finalLat;
+        BigDecimal finalLon;
+
+        if (request.latitude() != null && request.longitude() != null) {
+            finalLat = request.latitude();
+            finalLon = request.longitude();
+        } else {
+            String departmentName = (district.getProvince() != null && district.getProvince().getDepartment() != null)
+                    ? district.getProvince().getDepartment().getName()
+                    : "Lima";
+
+            var coords = geocodingService.geocodeAddress(
+                    request.specificAddress().trim(),
+                    district.getName(),
+                    departmentName
+            );
+            finalLat = coords.latitude();
+            finalLon = coords.longitude();
         }
 
         JobOffer offer = JobOffer.builder()
@@ -199,8 +220,8 @@ public class JobOfferService {
                 .maxBudget(request.maxBudget())
                 .ubigeoDistrictId(request.ubigeoDistrictId())
                 .specificAddress(request.specificAddress().trim())
-                .latitude(BigDecimal.ZERO) // TODO: reemplazar con logica de api para obtener latitud
-                .longitude(BigDecimal.ZERO) // TODO: reemplazar con logica de api para obtener longitud
+                .latitude(finalLat)
+                .longitude(finalLon)
                 .build();
 
         JobOffer saved = jobOfferRepository.save(offer);

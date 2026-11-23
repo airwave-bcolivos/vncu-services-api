@@ -32,12 +32,10 @@ public record JobOfferRequest(
         @NotBlank(message = "La dirección es obligatoria")
         String specificAddress,
 
-        @NotNull(message = "La latitud es obligatoria")
         @DecimalMin(value = "-90.0", message = "Latitud inválida")
         @DecimalMax(value = "90.0", message = "Latitud inválida")
         BigDecimal latitude,
 
-        @NotNull(message = "La longitud es obligatoria")
         @DecimalMin(value = "-180.0", message = "Longitud inválida")
         @DecimalMax(value = "180.0", message = "Longitud inválida")
         BigDecimal longitude
