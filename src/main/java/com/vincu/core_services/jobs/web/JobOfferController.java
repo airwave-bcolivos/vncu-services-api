@@ -62,6 +62,17 @@ public class JobOfferController {
         return ResponseEntity.ok(jobOfferService.getOfferDetail(id, viewerId));
     }
 
+    @GetMapping("/assigned")
+    public ResponseEntity<PageResponse<JobOfferSummaryResponse>> getOffersByTechnician(
+            @RequestParam String technicianId, // TODO: tomarlo del usuario autenticado con JWT
+            @RequestParam(required = false) JobStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(
+                jobOfferService.getOffersByTechnician(technicianId, status, page, size)
+        );
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancelOffer(@PathVariable UUID id) {
         jobOfferService.cancelOffer(id);

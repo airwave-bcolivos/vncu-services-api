@@ -136,6 +136,32 @@ public class JobOfferService {
         );
     }
 
+    //visualizacion de trabajos por estado del trabajo por tecnico
+    public PageResponse<JobOfferSummaryResponse> getOffersByTechnician(
+            String technicianId,
+            JobStatus status,
+            int page,
+            int size) {
+
+        UUID techUuid = UUID.fromString(technicianId.trim());
+
+        if (!techinicianRepository.existsById(techUuid)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El técnico no existe");
+        }
+
+        Specification<JobOffer> spec =
+                (root, query, cb) -> cb.equal(root.get("technicianId"), techUuid);
+
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+
+        return PageResponse.from(
+                jobOfferRepository.findAll(spec, buildPageable(page, size))
+                        .map(this::toSummary)
+        );
+    }
+
     public JobOfferDetailResponse getOfferDetail(String jobId, String viewerId) {
         JobOffer offer = jobOfferRepository.findWithDetailsById(UUID.fromString(jobId))
                 .orElseThrow(() -> new ResponseStatusException(
