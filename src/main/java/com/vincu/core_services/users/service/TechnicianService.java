@@ -1,6 +1,7 @@
 package com.vincu.core_services.users.service;
 import com.vincu.core_services.users.domain.TechnicianProfile;
 import com.vincu.core_services.users.dto.TechnicianFeeResponse;
+import com.vincu.core_services.users.dto.TechnicianProfileResponse;
 import com.vincu.core_services.users.dto.TechnicianUpdateFeeRequest;
 import com.vincu.core_services.users.repository.TechnicianProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,9 +14,14 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class TechnicianService {
 
     private final TechnicianProfileRepository technicianProfileRepository;
+
+    public TechnicianProfileResponse getProfile(UUID userId) {
+        return toResponse(findProfile(userId));
+    }
 
     @Transactional
     public TechnicianFeeResponse updateConsultationFee(UUID userId, TechnicianUpdateFeeRequest request) {
@@ -29,6 +35,36 @@ public class TechnicianService {
                 saved.getUserId(),
                 saved.getConsultationFee(),
                 saved.getUpdatedAt()
+        );
+    }
+
+    private TechnicianProfile findProfile(UUID userId) {
+        return technicianProfileRepository.findWithDetailsByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "El maestro de oficio no existe"));
+    }
+
+    private TechnicianProfileResponse toResponse(TechnicianProfile p) {
+        String fullLastname = p.getSecondLastname() == null
+                ? p.getLastname()
+                : p.getLastname() + " " + p.getSecondLastname();
+
+        return new TechnicianProfileResponse(
+                p.getUserId(),
+                p.getNames(),
+                p.getLastname(),
+                p.getSecondLastname(),
+                fullLastname,
+                p.getUser().getEmail(),
+                p.getDocumentType().getCode(),
+                p.getDocumentType().getName(),
+                p.getDocumentId(),
+                p.getSpecialty(),
+                p.getBioDescription(),
+                p.getIsActive(),
+                p.getAverageRating(),
+                p.getRatingCount(),
+                p.getConsultationFee()
         );
     }
 }
