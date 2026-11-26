@@ -1,45 +1,50 @@
 package com.vincu.core_services.users.service;
 
-import lombok.extern.log4j.Log4j2;
-
-import com.vincu.core_services.users.domain.User;
+import com.vincu.core_services.core.security.JwtConfig;
 import com.vincu.core_services.users.dto.LoginRequest;
 import com.vincu.core_services.users.dto.LoginResponse;
 import com.vincu.core_services.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.time.Duration;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
-@Log4j2
 public class AuthService {
-
-    public static final String TEMPORAL_TOKEN_VNCU = "temporal-token-vncu-123456";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtEncoder jwtEncoder;
 
     public LoginResponse login(LoginRequest request) {
-        Optional<User> userOptional = userRepository.findByEmail(request.email());
-
-        if (userOptional.isEmpty()) {
+        var user = userRepository.findLoginCredentialsByEmail(request.email())
+                .orElseThrow(() -> new IllegalArgumentException("Correo o contraseña incorrectos."));
+        if (Boolean.FALSE.equals(user.getActive()) || !passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new IllegalArgumentException("Correo o contraseña incorrectos.");
         }
 
-        User user = userOptional.get();
-
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new IllegalArgumentException("Correo o contraseña incorrectos.");
-        }
-
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer(JwtConfig.ISSUER)
+                .subject(user.getId().toString())
+                .issuedAt(now)
+                .expiresAt(now.plus(Duration.ofHours(8)))
+                .claim("role", user.getRole())
+                .build();
+        var parameters = JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims);
         return new LoginResponse(
                 user.getId().toString(),
                 user.getEmail(),
                 user.getRole(),
-                TEMPORAL_TOKEN_VNCU
+                jwtEncoder.encode(parameters).getTokenValue()
         );
     }
 }

@@ -44,16 +44,13 @@ public class JobReviewService {
 
 
     @Transactional
-    public JobReviewResponse createReview(UUID jobOfferId, JobReviewRequest request) {
+    public JobReviewResponse createReview(UUID jobOfferId, UUID userId, JobReviewRequest request) {
 
-        JobOffer offer = jobOfferRepository.findById(jobOfferId)
+        JobOffer offer = jobOfferRepository.findByIdForUpdate(jobOfferId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta de trabajo no existe"));
 
-        if (!offer.getClientId().equals(request.clientId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Solo el cliente que publicó el trabajo puede calificarlo");
-        }
+        requireAuthor(offer, userId);
 
         if (offer.getStatus() != JobStatus.COMPLETED) {
             throw new ResponseStatusException(
@@ -88,7 +85,16 @@ public class JobReviewService {
         return reviewMapper.toJobReviewResponse(saved, offer, technician);
     }
 
-    public JobReviewResponse getReviewByJobOffer(UUID jobOfferId) {
+    private static void requireAuthor(JobOffer offer, UUID userId) {
+        if (!userId.equals(offer.getClientId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el cliente que publicó el trabajo puede calificarlo");
+        }
+    }
+
+    public JobReviewResponse getReviewByJobOffer(UUID jobOfferId, UUID userId) {
+        var offer = jobOfferRepository.findById(jobOfferId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La oferta de trabajo no existe"));
+        requireAuthor(offer, userId);
         return reviewRepository.findByJobOfferId(jobOfferId)
                 .map(reviewMapper::toJobReviewResponse)
                 .orElseThrow(() -> new ResponseStatusException(

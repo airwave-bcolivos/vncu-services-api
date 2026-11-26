@@ -16,5 +16,6 @@ public record JobOfferSummaryResponse(
         String ubigeoDistrictName,
         BigDecimal clientAverageRating,
         Integer clientRatingCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long propuestasCount
 ) { }

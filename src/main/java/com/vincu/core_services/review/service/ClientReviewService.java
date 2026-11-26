@@ -44,17 +44,14 @@ public class ClientReviewService {
     }
 
     @Transactional
-    public ClientReviewResponse createClientReview(UUID jobOfferId, ClientReviewRequest request) {
+    public ClientReviewResponse createClientReview(UUID jobOfferId, UUID userId, ClientReviewRequest request) {
 
-        JobOffer offer = offerRepository.findById(jobOfferId)
+        JobOffer offer = offerRepository.findByIdForUpdate(jobOfferId)
             .orElseThrow(() -> new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "La oferta de trabajo no existe"));
 
         // Solo el técnico asignado a la oferta puede calificar al cliente
-        if (offer.getTechnicianId() == null || !offer.getTechnicianId().equals(request.technicianId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Solo el técnico asignado a este trabajo puede calificar al cliente");
-        }
+        requireAuthor(offer, userId);
 
         if (offer.getStatus() != JobStatus.COMPLETED) {
             throw new ResponseStatusException(
@@ -91,7 +88,16 @@ public class ClientReviewService {
         return reviewMapper.toClientReviewResponse(saved, offer, client);
     }
 
-    public ClientReviewResponse getReviewByJobOffer(UUID jobOfferId) {
+    private static void requireAuthor(JobOffer offer, UUID userId) {
+        if (!userId.equals(offer.getTechnicianId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el técnico asignado a este trabajo puede calificar al cliente");
+        }
+    }
+
+    public ClientReviewResponse getReviewByJobOffer(UUID jobOfferId, UUID userId) {
+        var offer = offerRepository.findById(jobOfferId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La oferta de trabajo no existe"));
+        requireAuthor(offer, userId);
         return clientReviewRepository.findByJobOfferId(jobOfferId)
                 .map(reviewMapper::toClientReviewResponse)
                 .orElseThrow(() -> new ResponseStatusException(

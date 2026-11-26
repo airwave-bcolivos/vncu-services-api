@@ -8,6 +8,8 @@ import com.vincu.core_services.review.service.ClientReviewService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -27,14 +29,16 @@ public class ClientReviewController {
     @PostMapping("/client/{jobOfferId}/client-review")
     public ResponseEntity<ClientReviewResponse> createReview(
             @PathVariable UUID jobOfferId,
+            @AuthenticationPrincipal Jwt user,
             @Valid @RequestBody ClientReviewRequest request) {
-        ClientReviewResponse response = clientReviewService.createClientReview(jobOfferId, request);
+        ClientReviewResponse response = clientReviewService.createClientReview(jobOfferId, UUID.fromString(user.getSubject()), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/client/{jobOfferId}/client-review")
-    public ResponseEntity<ClientReviewResponse> getReviewByJobOffer(@PathVariable UUID jobOfferId) {
-        return ResponseEntity.ok(clientReviewService.getReviewByJobOffer(jobOfferId));
+    public ResponseEntity<ClientReviewResponse> getReviewByJobOffer(
+            @PathVariable UUID jobOfferId, @AuthenticationPrincipal Jwt user) {
+        return ResponseEntity.ok(clientReviewService.getReviewByJobOffer(jobOfferId, UUID.fromString(user.getSubject())));
     }
 
     // Reseñas de un cliente

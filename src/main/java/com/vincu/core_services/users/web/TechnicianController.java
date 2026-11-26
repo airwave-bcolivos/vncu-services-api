@@ -1,13 +1,13 @@
 package com.vincu.core_services.users.web;
 
-import com.vincu.core_services.users.dto.TechnicianFeeResponse;
 import com.vincu.core_services.users.dto.TechnicianProfileResponse;
-import com.vincu.core_services.users.dto.TechnicianUpdateFeeRequest;
 import com.vincu.core_services.users.service.TechnicianService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
@@ -22,13 +22,5 @@ public class TechnicianController {
     @GetMapping("/{userId}")
     public ResponseEntity<TechnicianProfileResponse> getProfile(@PathVariable UUID userId) {
         return ResponseEntity.ok(technicianService.getProfile(userId));
-    }
-
-    @PatchMapping("/{userId}/consultation-fee")
-    public ResponseEntity<TechnicianFeeResponse> updateConsultationFee(
-            @PathVariable UUID userId,
-            @Valid @RequestBody TechnicianUpdateFeeRequest request
-    ) {
-        return ResponseEntity.ok(technicianService.updateConsultationFee(userId, request));
     }
 }

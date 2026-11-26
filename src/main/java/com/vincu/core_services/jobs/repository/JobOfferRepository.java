@@ -1,12 +1,15 @@
 package com.vincu.core_services.jobs.repository;
 
 import com.vincu.core_services.jobs.domain.JobOffer;
+import jakarta.persistence.LockModeType;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,4 +31,7 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, UUID>, JpaSp
     @EntityGraph(attributePaths = {"district.province.department", "client", "technician"})
     Optional<JobOffer> findWithDetailsById(UUID id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select job from JobOffer job where job.id = :id")
+    Optional<JobOffer> findByIdForUpdate(UUID id);
 }

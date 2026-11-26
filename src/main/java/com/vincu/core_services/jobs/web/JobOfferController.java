@@ -9,6 +9,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -26,7 +28,6 @@ public class JobOfferController {
     }
 
 
-    //TODO: posible logica para listar publicaciones para el maestro
     @GetMapping("/open")
     public ResponseEntity<PageResponse<JobOfferSummaryResponse>> getOpenOffers(
             @RequestParam(required = false) Specialty specialty,
@@ -57,9 +58,11 @@ public class JobOfferController {
 
     @GetMapping("/{id}")
     public ResponseEntity<JobOfferDetailResponse> getOfferDetail(
-            @PathVariable String id,
-            @RequestParam(required = false) String viewerId) { // TODO: tomarlo del usuario autenticado
-        return ResponseEntity.ok(jobOfferService.getOfferDetail(id, viewerId));
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt user) {
+        UUID viewerId = user == null ? null : UUID.fromString(user.getSubject());
+        boolean technician = user != null && "TECHNICIAN".equals(user.getClaimAsString("role"));
+        return ResponseEntity.ok(jobOfferService.getOfferDetail(id, viewerId, technician));
     }
 
     @GetMapping("/assigned")
@@ -73,9 +76,15 @@ public class JobOfferController {
         );
     }
 
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<Void> completeJob(@PathVariable UUID id, @AuthenticationPrincipal Jwt user) {
+        jobOfferService.completeJob(id, UUID.fromString(user.getSubject()));
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelOffer(@PathVariable UUID id) {
-        jobOfferService.cancelOffer(id);
+    public ResponseEntity<Void> cancelOffer(@PathVariable UUID id, @AuthenticationPrincipal Jwt user) {
+        jobOfferService.cancelOffer(id, UUID.fromString(user.getSubject()));
         return ResponseEntity.noContent().build();
     }
 

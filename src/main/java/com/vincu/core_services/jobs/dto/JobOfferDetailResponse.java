@@ -12,6 +12,7 @@ public record JobOfferDetailResponse(
         UUID clientId,
         String clientName,
         String clientPhone, // null si no tiene permiso
+        String clientEmail, // null si no tiene permiso
         UUID technicianId,
         String technicianName,
         String title,
@@ -31,5 +32,6 @@ public record JobOfferDetailResponse(
         BigDecimal clientAverageRating,
         Integer clientRatingCount,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        boolean diagnosticOfferSubmitted
 ) { }

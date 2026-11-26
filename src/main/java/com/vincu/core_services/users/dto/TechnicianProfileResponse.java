@@ -20,6 +20,5 @@ public record TechnicianProfileResponse(
         String bioDescription,
         Boolean isActive,
         BigDecimal averageRating,
-        Integer ratingCount,
-        BigDecimal consultationFee
+        Integer ratingCount
 ) { }

@@ -35,6 +35,10 @@ public class JobOfferMapper {
     }
 
     public JobOfferSummaryResponse toSummary(JobOffer o) {
+        return toSummary(o, null);
+    }
+
+    public JobOfferSummaryResponse toSummary(JobOffer o, Long diagnosticOfferCount) {
         ClientProfile client = o.getClient();
         return new JobOfferSummaryResponse(
                 o.getId().toString(),
@@ -46,11 +50,12 @@ public class JobOfferMapper {
                 districtName(o),
                 client != null ? client.getAverageRating() : null,
                 client != null ? client.getRatingCount() : 0,
-                o.getCreatedAt()
+                o.getCreatedAt(),
+                diagnosticOfferCount
         );
     }
 
-    public JobOfferDetailResponse toDetail(JobOffer jobOffer, UUID viewerId) {
+    public JobOfferDetailResponse toDetail(JobOffer jobOffer, UUID viewerId, boolean diagnosticOfferSubmitted) {
         // TODO: Pensar como hacer para que no falle cuando se agregue el administrador (id admin)
         boolean isOwner = viewerId != null && jobOffer.getClientId().equals(viewerId);
         boolean isAssignedTechnician = viewerId != null
@@ -63,6 +68,7 @@ public class JobOfferMapper {
         ClientProfile client = jobOffer.getClient();
         String clientName = canSeePrivateData ? fullName(client) : null;
         String clientPhone = (canSeePrivateData && client != null) ? client.getPhoneNumber() : null;
+        String clientEmail = (canSeePrivateData && client != null) ? client.getUser().getEmail() : null;
         String address = canSeePrivateData ? jobOffer.getSpecificAddress() : null;
         String technicianName = jobOffer.getTechnician() != null ? fullName(jobOffer.getTechnician()) : null;
 
@@ -82,6 +88,7 @@ public class JobOfferMapper {
                 jobOffer.getClientId(),
                 clientName,
                 clientPhone,
+                clientEmail,
                 jobOffer.getTechnicianId(),
                 technicianName,
                 jobOffer.getTitle(),
@@ -101,7 +108,8 @@ public class JobOfferMapper {
                 client != null ? client.getAverageRating() : null,
                 client != null ? client.getRatingCount() : 0,
                 jobOffer.getCreatedAt(),
-                jobOffer.getUpdatedAt()
+                jobOffer.getUpdatedAt(),
+                diagnosticOfferSubmitted
         );
     }
 

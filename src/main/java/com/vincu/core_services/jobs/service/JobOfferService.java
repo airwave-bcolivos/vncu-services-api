@@ -4,6 +4,7 @@ import com.vincu.core_services.jobs.domain.JobOffer;
 import com.vincu.core_services.jobs.domain.JobStatus;
 import com.vincu.core_services.jobs.dto.*;
 import com.vincu.core_services.jobs.mapper.JobOfferMapper;
+import com.vincu.core_services.jobs.repository.DiagnosticOfferRepository;
 import com.vincu.core_services.jobs.repository.JobOfferRepository;
 import com.vincu.core_services.ubigeo.repository.UbigeoDistrictRepository;
 import com.vincu.core_services.users.domain.ClientProfile;
@@ -21,7 +22,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static com.vincu.core_services.jobs.domain.DiagnosticOfferStatus.PENDING;
+import static com.vincu.core_services.jobs.domain.DiagnosticOfferStatus.REJECTED;
 
 @Service
 @Transactional(readOnly = true)
@@ -32,6 +38,7 @@ public class JobOfferService {
     private final JobOfferMapper jobOfferMapper;
     private final TechnicianProfileRepository techinicianRepository;
     private final JobOfferRepository jobOfferRepository;
+    private final DiagnosticOfferRepository diagnosticOfferRepository;
     private final ClientProfileRepository clientProfileRepository;
     private final UbigeoDistrictRepository ubigeoDistrictRepository;
     private final NominatimGeocodingService geocodingService;
@@ -39,11 +46,13 @@ public class JobOfferService {
     public JobOfferService(JobOfferMapper jobOfferMapper,
                            TechnicianProfileRepository techinicianRepository,
                            JobOfferRepository jobOfferRepository,
+                           DiagnosticOfferRepository diagnosticOfferRepository,
                            ClientProfileRepository clientProfileRepository,
                            UbigeoDistrictRepository ubigeoDistrictRepository, NominatimGeocodingService geocodingService) {
         this.jobOfferMapper = jobOfferMapper;
         this.techinicianRepository = techinicianRepository;
         this.jobOfferRepository = jobOfferRepository;
+        this.diagnosticOfferRepository = diagnosticOfferRepository;
         this.clientProfileRepository = clientProfileRepository;
         this.ubigeoDistrictRepository = ubigeoDistrictRepository;
         this.geocodingService = geocodingService;
@@ -132,10 +141,14 @@ public class JobOfferService {
             sort = sort.and(Sort.by(Sort.Direction.DESC, "createdAt"));
         }
         sort = sort.and(Sort.by("id"));
-        return PageResponse.from(
-                jobOfferRepository.findAll(spec, buildPageable(page, size, sort))
-                        .map(jobOfferMapper::toSummary)
-        );
+        var jobs = jobOfferRepository.findAll(spec, buildPageable(page, size, sort));
+        if (jobs.isEmpty()) {
+            return PageResponse.from(jobs.map(jobOfferMapper::toSummary));
+        }
+        var ids = jobs.getContent().stream().map(JobOffer::getId).toList();
+        Map<UUID, Long> counts = diagnosticOfferRepository.countByJobIds(ids).stream().collect(Collectors.toMap(
+                DiagnosticOfferRepository.JobOfferCount::getJobId, DiagnosticOfferRepository.JobOfferCount::getTotal));
+        return PageResponse.from(jobs.map(job -> jobOfferMapper.toSummary(job, counts.getOrDefault(job.getId(), 0L))));
     }
 
     // Visualización de trabajos por estado del trabajo por técnico
@@ -164,24 +177,40 @@ public class JobOfferService {
         );
     }
 
-    public JobOfferDetailResponse getOfferDetail(String jobId, String viewerId) {
-        JobOffer offer = jobOfferRepository.findWithDetailsById(UUID.fromString(jobId))
+    public JobOfferDetailResponse getOfferDetail(UUID jobId, UUID viewerId, boolean technician) {
+        JobOffer offer = jobOfferRepository.findWithDetailsById(jobId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta no existe"));
 
-        UUID viewerUuid = (viewerId != null && !viewerId.isBlank())
-                ? UUID.fromString(viewerId.trim())
-                : null;
-
-        return jobOfferMapper.toDetail(offer, viewerUuid);
+        boolean diagnosticOfferSubmitted = technician
+                && diagnosticOfferRepository.existsByJobOffer_IdAndTechnician_UserId(jobId, viewerId);
+        return jobOfferMapper.toDetail(offer, viewerId, diagnosticOfferSubmitted);
     }
 
     @Transactional
-    public void cancelOffer(UUID id) {
-        JobOffer offer = jobOfferRepository.findById(id)
+    public void completeJob(UUID id, UUID userId) {
+        JobOffer job = jobOfferRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La publicación no existe"));
+        if (!userId.equals(job.getClientId()) && !userId.equals(job.getTechnicianId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (job.getTechnicianId() == null
+                || (job.getStatus() != JobStatus.IN_PROGRESS && job.getStatus() != JobStatus.COMPLETED)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Solo se pueden finalizar trabajos asignados en progreso");
+        }
+        job.setStatus(JobStatus.COMPLETED);
+    }
+
+    @Transactional
+    public void cancelOffer(UUID id, UUID clientId) {
+        JobOffer offer = jobOfferRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta no existe"));
+        if (!offer.getClientId().equals(clientId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         offer.setStatus(JobStatus.CANCELED);
+        diagnosticOfferRepository.rejectPending(id, PENDING, REJECTED);
     }
 
     @Transactional
