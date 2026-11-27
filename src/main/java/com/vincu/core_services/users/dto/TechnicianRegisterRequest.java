@@ -30,6 +30,6 @@ public record TechnicianRegisterRequest(
         @NotNull(message = "La especialidad es obligatoria y debe ser válida")
         Specialty specialty,
 
-        @NotBlank(message = "El número de teléfono es obligatorio")
+        @NotBlank(message = "La descripción profesional es obligatoria")
         String bioDescription
 ) {}
