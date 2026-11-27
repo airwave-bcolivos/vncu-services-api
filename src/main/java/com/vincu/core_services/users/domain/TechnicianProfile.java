@@ -61,4 +61,9 @@ public class TechnicianProfile {
 
     @Column(name = "rating_count", insertable = false, updatable = false)
     private Integer ratingCount;
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

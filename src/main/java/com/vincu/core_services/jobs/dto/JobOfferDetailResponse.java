@@ -11,6 +11,8 @@ public record JobOfferDetailResponse(
         UUID id,
         UUID clientId,
         String clientName,
+        String clientPhone, // null si no tiene permiso
+        String clientEmail, // null si no tiene permiso
         UUID technicianId,
         String technicianName,
         String title,
@@ -27,6 +29,9 @@ public record JobOfferDetailResponse(
         String specificAddress, // null si el que consulta no tiene permiso
         BigDecimal latitude,
         BigDecimal longitude,
+        BigDecimal clientAverageRating,
+        Integer clientRatingCount,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        boolean diagnosticOfferSubmitted
 ) { }

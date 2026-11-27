@@ -18,5 +18,7 @@ public record JobOfferResponse(
         String ubigeoDistrictId,
         BigDecimal latitude,
         BigDecimal longitude,
+        BigDecimal clientAverageRating,
+        Integer clientRatingCount,
         LocalDateTime createdAt
 ) {}

@@ -7,6 +7,8 @@ import com.vincu.core_services.review.service.JobReviewService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -25,15 +27,17 @@ public class JobReviewController {
     @PostMapping("/jobs/{jobOfferId}/review")
     public ResponseEntity<JobReviewResponse> createReview(
             @PathVariable UUID jobOfferId,
+            @AuthenticationPrincipal Jwt user,
             @Valid @RequestBody JobReviewRequest request) {
-        JobReviewResponse response = reviewService.createReview(jobOfferId, request);
+        JobReviewResponse response = reviewService.createReview(jobOfferId, UUID.fromString(user.getSubject()), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // Ver la reseña de un trabajo (404 si aún no existe)
     @GetMapping("/jobs/{jobOfferId}/review")
-    public ResponseEntity<JobReviewResponse> getReviewByJobOffer(@PathVariable UUID jobOfferId) {
-        return ResponseEntity.ok(reviewService.getReviewByJobOffer(jobOfferId));
+    public ResponseEntity<JobReviewResponse> getReviewByJobOffer(
+            @PathVariable UUID jobOfferId, @AuthenticationPrincipal Jwt user) {
+        return ResponseEntity.ok(reviewService.getReviewByJobOffer(jobOfferId, UUID.fromString(user.getSubject())));
     }
 
     // Reseñas de un técnico

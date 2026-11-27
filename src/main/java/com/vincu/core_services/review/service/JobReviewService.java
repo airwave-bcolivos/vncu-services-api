@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.vincu.core_services.review.mapper.ReviewMapper;
 
 import java.util.UUID;
 
@@ -27,13 +28,15 @@ public class JobReviewService {
 
     private static final int MAX_PAGE_SIZE = 50;
 
+    private final ReviewMapper reviewMapper;
     private final JobReviewRepository reviewRepository;
     private final JobOfferRepository jobOfferRepository;
     private final TechnicianProfileRepository technicianProfileRepository;
 
-    public JobReviewService(JobReviewRepository reviewRepository,
+    public JobReviewService(ReviewMapper reviewMapper, JobReviewRepository reviewRepository,
                             JobOfferRepository jobOfferRepository,
                             TechnicianProfileRepository technicianProfileRepository) {
+        this.reviewMapper = reviewMapper;
         this.reviewRepository = reviewRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.technicianProfileRepository = technicianProfileRepository;
@@ -41,16 +44,13 @@ public class JobReviewService {
 
 
     @Transactional
-    public JobReviewResponse createReview(UUID jobOfferId, JobReviewRequest request) {
+    public JobReviewResponse createReview(UUID jobOfferId, UUID userId, JobReviewRequest request) {
 
-        JobOffer offer = jobOfferRepository.findById(jobOfferId)
+        JobOffer offer = jobOfferRepository.findByIdForUpdate(jobOfferId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La oferta de trabajo no existe"));
 
-        if (!offer.getClientId().equals(request.clientId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Solo el cliente que publicó el trabajo puede calificarlo");
-        }
+        requireAuthor(offer, userId);
 
         if (offer.getStatus() != JobStatus.COMPLETED) {
             throw new ResponseStatusException(
@@ -82,45 +82,39 @@ public class JobReviewService {
 
         technicianProfileRepository.refreshRatingSummary(technicianId);
 
-        return toResponse(saved, offer, technician);
+        return reviewMapper.toJobReviewResponse(saved, offer, technician);
     }
 
-    public JobReviewResponse getReviewByJobOffer(UUID jobOfferId) {
+    private static void requireAuthor(JobOffer offer, UUID userId) {
+        if (!userId.equals(offer.getClientId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el cliente que publicó el trabajo puede calificarlo");
+        }
+    }
+
+    public JobReviewResponse getReviewByJobOffer(UUID jobOfferId, UUID userId) {
+        var offer = jobOfferRepository.findById(jobOfferId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La oferta de trabajo no existe"));
+        requireAuthor(offer, userId);
         return reviewRepository.findByJobOfferId(jobOfferId)
-                .map(this::toResponse)
+                .map(reviewMapper::toJobReviewResponse)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Este trabajo aún no tiene reseña"));
     }
 
     public PageResponse<JobReviewResponse> getReviewsByTechnician(UUID technicianId, int page, int size) {
+       if(!technicianProfileRepository.existsById(technicianId)) {
+           throw new ResponseStatusException(
+                   HttpStatus.NOT_FOUND, "El perfil de este tecnico no existe"
+           );
+       }
+
         Pageable pageable = PageRequest.of(
                 Math.max(page, 0),
                 Math.clamp(size, 1, MAX_PAGE_SIZE),
                 Sort.by("createdAt").descending());
 
         Page<JobReview> result = reviewRepository.findByTechnicianId(technicianId, pageable);
-        return PageResponse.from(result.map(this::toResponse));
+        return PageResponse.from(result.map(reviewMapper::toJobReviewResponse));
     }
 
-    private JobReviewResponse toResponse(JobReview r) {
-        return toResponse(r, r.getJobOffer(), r.getTechnician());
-    }
-
-    private JobReviewResponse toResponse(JobReview r, JobOffer offer, TechnicianProfile tech) {
-        String fullLastName = (tech.getSecondLastname() == null || tech.getSecondLastname().isBlank())
-                ? tech.getLastname()
-                : tech.getLastname() + " " + tech.getSecondLastname();
-
-        return new JobReviewResponse(
-                r.getId(),
-                r.getJobOfferId(),
-                offer.getTitle(),
-                r.getTechnicianId(),
-                tech.getNames(),
-                fullLastName,
-                r.getRating(),
-                r.getComment(),
-                r.getCreatedAt()
-        );
-    }
 }
